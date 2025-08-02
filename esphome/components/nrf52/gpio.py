@@ -2,23 +2,12 @@ from esphome import pins
 import esphome.codegen as cg
 from esphome.components.zephyr.const import zephyr_ns
 import esphome.config_validation as cv
-from esphome.const import (
-    CONF_ANALOG,
-    CONF_ID,
-    CONF_INVERTED,
-    CONF_MODE,
-    CONF_NUMBER,
-    PLATFORM_NRF52,
-)
-
-from .const import AIN_TO_GPIO, EXTRA_ADC
+from esphome.const import CONF_ID, CONF_INVERTED, CONF_MODE, CONF_NUMBER, PLATFORM_NRF52
 
 ZephyrGPIOPin = zephyr_ns.class_("ZephyrGPIOPin", cg.InternalGPIOPin)
 
 
 def _translate_pin(value):
-    if value in AIN_TO_GPIO:
-        return AIN_TO_GPIO[value]
     if isinstance(value, dict) or value is None:
         raise cv.Invalid(
             "This variable only supports pin numbers, not full pin schemas "
@@ -39,23 +28,9 @@ def _translate_pin(value):
 
 
 def validate_gpio_pin(value):
-    if value in EXTRA_ADC:
-        return value
     value = _translate_pin(value)
     if value < 0 or value > (32 + 16):
         raise cv.Invalid(f"NRF52: Invalid pin number: {value}")
-    return value
-
-
-def validate_supports(value):
-    num = value[CONF_NUMBER]
-    mode = value[CONF_MODE]
-    is_analog = mode[CONF_ANALOG]
-    if is_analog:
-        if num in EXTRA_ADC:
-            return value
-        if num not in AIN_TO_GPIO.values():
-            raise cv.Invalid(f"Cannot use {num} as analog pin")
     return value
 
 
@@ -63,9 +38,8 @@ NRF52_PIN_SCHEMA = cv.All(
     pins.gpio_base_schema(
         ZephyrGPIOPin,
         validate_gpio_pin,
-        modes=pins.GPIO_STANDARD_MODES + (CONF_ANALOG,),
+        modes=pins.GPIO_STANDARD_MODES,
     ),
-    validate_supports,
 )
 
 

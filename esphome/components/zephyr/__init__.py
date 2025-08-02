@@ -1,5 +1,5 @@
 import os
-from typing import TypedDict
+from typing import Final, TypedDict
 
 import esphome.codegen as cg
 from esphome.const import CONF_BOARD
@@ -8,19 +8,18 @@ from esphome.helpers import copy_file_if_changed, write_file_if_changed
 
 from .const import (
     BOOTLOADER_MCUBOOT,
-    KEY_BOARD,
     KEY_BOOTLOADER,
     KEY_EXTRA_BUILD_FILES,
     KEY_OVERLAY,
     KEY_PM_STATIC,
     KEY_PRJ_CONF,
-    KEY_USER,
     KEY_ZEPHYR,
     zephyr_ns,
 )
 
 CODEOWNERS = ["@tomaszduda23"]
 AUTO_LOAD = ["preferences"]
+KEY_BOARD: Final = "board"
 
 PrjConfValueType = bool | str | int
 
@@ -50,7 +49,6 @@ class ZephyrData(TypedDict):
     overlay: str
     extra_build_files: dict[str, str]
     pm_static: list[Section]
-    user: dict[str, list[str]]
 
 
 def zephyr_set_core_data(config):
@@ -61,7 +59,6 @@ def zephyr_set_core_data(config):
         overlay="",
         extra_build_files={},
         pm_static=[],
-        user={},
     )
     return config
 
@@ -181,25 +178,7 @@ def zephyr_add_pm_static(section: Section):
     CORE.data[KEY_ZEPHYR][KEY_PM_STATIC].extend(section)
 
 
-def zephyr_add_user(key, value):
-    user = zephyr_data()[KEY_USER]
-    if key not in user:
-        user[key] = []
-    user[key] += [value]
-
-
 def copy_files():
-    user = zephyr_data()[KEY_USER]
-    if user:
-        zephyr_add_overlay(
-            f"""
-/ {{
-    zephyr,user {{
-        {[f"{key} = {', '.join(value)};" for key, value in user.items()][0]}
-}};
-}};"""
-        )
-
     want_opts = zephyr_data()[KEY_PRJ_CONF]
 
     prj_conf = (
